@@ -27,7 +27,7 @@ def main():
     df = df.drop(columns=['date'])
 
     # Define sequence length and split into train/validation/test sets
-    sequence_length = 30
+    sequence_length = 100
     test_size = 0.1  # 10% of the data for testing
     val_size = 0.2   # 20% of the data for validation
     test_split_size = int(len(df) * test_size)
@@ -65,11 +65,11 @@ def main():
     model.to(device)
 
     # Define optimizer and loss function
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=0.0001)
     criterion = nn.MSELoss()
 
     # Early stopping parameters
-    num_epochs = 2
+    num_epochs = 10
     patience = 5  # Stop training if validation loss doesn't improve for 5 consecutive epochs
     best_val_loss = float('inf')
     trigger_times = 0

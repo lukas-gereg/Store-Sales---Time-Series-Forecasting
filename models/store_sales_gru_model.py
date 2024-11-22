@@ -46,8 +46,8 @@ class StoreSalesGRUModel(BaseModel):
         self.dropout = nn.Dropout(self.dropout)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(self.hidden_size, 64)
-        self.fc2 = nn.Linear(64, 64)
+        self.fc1 = nn.Linear(self.hidden_size, 128)
+        self.fc2 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(64, self.output_size)
         self.relu = nn.ReLU()
 
@@ -77,9 +77,12 @@ class StoreSalesGRUModel(BaseModel):
 
         out = self.fc1(out) 
 
+        out = self.layer_norm(out)
 
         out = self.fc2(out)
         
+        out = self.relu(out)
+
         out = self.fc3(out)
 
         out = self.relu(out)

@@ -13,13 +13,25 @@ def main():
     train_data_path = './MyData/final_train_dataset.csv'
     df = pd.read_csv(train_data_path)
 
-    # Preprocess the dataset
+    # # Preprocess the dataset
     df['date'] = pd.to_datetime(df['date'])
     df['days_from_start'] = (df['date'] - df['date'].min()).dt.days
     df = df.drop(columns=['date'])
 
+    # Prekonvertovanie stĺpca 'date' na datetime formát
+    #df['date'] = pd.to_datetime(df['date'])
+
+    # Filtrovanie dát len pre roky 2016 a 2017
+    #df = df[(df['date'].dt.year >= 2016) & (df['date'].dt.year <= 2017)]
+
+    # Vytvorenie stĺpca 'days_from_start', ktorý počíta dni od najstaršieho dátumu
+    #df['days_from_start'] = (df['date'] - df['date'].min()).dt.days
+
+    # Odstránenie stĺpca 'date', ak už nie je potrebný
+    #df = df.drop(columns=['date'])
+
     # Define sequence length and split into train/validation sets
-    sequence_length = 30
+    sequence_length = 100
     val_size = 0.1  # 10% of the data for validation
     val_split_size = int(len(df) * val_size)
 
@@ -30,17 +42,17 @@ def main():
     train_dataset = SalesDataset(train_df, sequence_length=sequence_length)
     val_dataset = SalesDataset(val_df, sequence_length=sequence_length)
 
-    batch_size = 5000
+    batch_size = 1024
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=6, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=6, pin_memory=True)
 
     # Define network parameters
     model_properties = {
         'input_size': train_df.drop(columns=['sales']).shape[1],  # Number of input features
-        'hidden_size': 64,
+        'hidden_size': 128,
         'num_layers': 4,
         'output_size': 1,  # Predicting one "sales" value
-        'dropout': 0.2
+        'dropout': 0.1
     }
 
     # Initialize the model
@@ -51,7 +63,7 @@ def main():
     model.to(device)
 
     # Define optimizer and loss function
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
     criterion = nn.MSELoss()
 
     # Early stopping parameters
