@@ -75,14 +75,8 @@ class StoreSalesGRUModel(BaseModel):
         # Use the last hidden state from both directions
         out = out[:, -1, :]  # Shape: (batch_size, hidden_size * num_directions)
 
-        # Normalize the hidden states
-        #out = self.layer_norm(out)
-
         out = self.fc1(out) 
 
-        # out = self.relu(out)
-
-        # out = self.dropout(out)
 
         out = self.fc2(out)
         
@@ -90,7 +84,6 @@ class StoreSalesGRUModel(BaseModel):
 
         out = self.relu(out)
 
-        # out = self.dropout(out)
 
 
         return out
