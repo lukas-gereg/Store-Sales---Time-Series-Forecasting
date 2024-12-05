@@ -6,19 +6,16 @@ import wandb
 import string
 import shutil
 import random
-import itertools
-import numpy as np
 from pathlib import Path
 from io import TextIOWrapper
 import matplotlib.pyplot as plt
-from torch.utils.data import Subset
 import torch.utils.data as torch_utils
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
 
-from assignment.models.base_model import BaseModel
-from assignment.utils.training import Training
-from assignment.utils.evaluation import Evaluation
-from assignment.datasets.custom_concat_dataset import CustomConcatDataset
+from models.base_model import BaseModel
+from utils.training import Training
+from utils.evaluation import Evaluation
+from datasets.custom_concat_dataset import CustomConcatDataset
 
 
 class CrossValidation:
@@ -32,38 +29,14 @@ class CrossValidation:
     def reset_weights(module: BaseModel) -> BaseModel:
         return module.__class__(module.defaults)
 
-    @staticmethod
-    def set_dataset_transforms(dataset, data_transforms, label_transforms):
-        for sub_dataset in dataset.datasets:
-            if isinstance(sub_dataset, Subset):
-                sub_dataset = sub_dataset.dataset
-
-            sub_dataset.transform = data_transforms
-            sub_dataset.target_transform = label_transforms
-
-        return dataset
-
     def __call__(self, epochs, device, optimizer, model, loss, train_dataset, validation_dataset, test_dataset, threshold, lr_scheduler=None,
                  wandb_config=None):
-        k_fold = StratifiedKFold(n_splits=self.k_folds, shuffle=True, random_state=self.seed)
-
-        train_data = train_dataset.dataset if isinstance(train_dataset, Subset) else train_dataset
-        train_data_transforms = train_data.transform
-        train_label_transforms = train_data.target_transform
-
-        validation_data = validation_dataset.dataset if isinstance(validation_dataset, Subset) else validation_dataset
-        validation_data_transforms = validation_data.transform
-        validation_label_transforms = validation_data.target_transform
+        k_fold = KFold(n_splits=self.k_folds, shuffle=True, random_state=self.seed)
 
         base_dataset = CustomConcatDataset([train_dataset, validation_dataset])
 
-        train_dataset = self.set_dataset_transforms(copy.deepcopy(base_dataset), train_data_transforms, train_label_transforms)
-        validation_dataset = self.set_dataset_transforms(copy.deepcopy(base_dataset), validation_data_transforms, validation_label_transforms)
-
-        # TODO when reusing, make sure find_y_by_index is defined, as this is preventing load of x data and making preparation run faster
-        labels_list = [[sub_dataset.find_y_by_index(idx) for idx in range(len(sub_dataset))] for sub_dataset in base_dataset.base_datasets]
-
-        labels = list(itertools.chain.from_iterable(labels_list))
+        train_dataset = copy.deepcopy(base_dataset)
+        validation_dataset = copy.deepcopy(base_dataset)
 
         if lr_scheduler is not None:
             scheduler_initial_state = copy.deepcopy(lr_scheduler.state_dict())
@@ -78,7 +51,7 @@ class CrossValidation:
 
         print(f"Cross validation run {run_name}")
 
-        splits = [(train_ids.tolist(), validation_ids.tolist()) for (train_ids, validation_ids) in k_fold.split(np.zeros(len(base_dataset)), labels)]
+        splits = [(train_ids.tolist(), validation_ids.tolist()) for (train_ids, validation_ids) in k_fold.split(range(len(base_dataset)))]
 
         path = Path(".", "model_params", "folds", f"run-{run_name}", "splits.json")
         path.parent.mkdir(parents=True, exist_ok=True)

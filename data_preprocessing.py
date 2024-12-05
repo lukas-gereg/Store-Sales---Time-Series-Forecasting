@@ -5,7 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
 from sklearn.base import TransformerMixin
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf, pacf, acf
+from statsmodels.graphics.tsaplots import pacf, acf
 
 
 class DataPreprocessing:

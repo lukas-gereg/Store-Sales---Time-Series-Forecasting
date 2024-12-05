@@ -4,12 +4,12 @@ import wandb
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from assignment.utils.rmsle import RMSLE
-from assignment.datasets.sales_dataset import SalesDataSet
-from assignment.datasets.custom_subset import CustomSubset
-from assignment.data_preprocessing import DataPreprocessing
-from assignment.utils.cross_validation import CrossValidation
-from assignment.models.store_sales_gru_model import StoreSalesGRUModel
+from utils.rmsle import RMSLE
+from datasets.sales_dataset import SalesDataSet
+from datasets.custom_subset import CustomSubset
+from data_preprocessing import DataPreprocessing
+from utils.cross_validation import CrossValidation
+from models.store_sales_gru_model import StoreSalesGRUModel
 
 if __name__ == '__main__':
     debug = False
@@ -29,8 +29,8 @@ if __name__ == '__main__':
     hidden_size = 256
 
 
-    # dataframe = DataPreprocessing.create_dataset(os.path.join(os.getcwd(), 'store-sales-time-series-forecasting', 'train.csv'))
-    # dataframe.to_csv(os.path.join(os.getcwd(), 'output_train.csv'), index=False)
+    # dataframe = DataPreprocessing.create_dataset(os.path.join(os.getcwd(), 'data', 'test.csv'))
+    # dataframe.to_csv(os.path.join(os.getcwd(), 'output_test.csv'), index=False)
     dataframe = pd.read_csv(os.path.join(os.getcwd(), 'output_train.csv'))
     dataframe, encoders = DataPreprocessing.preprocess_dataset(dataframe)
     dataframes = DataPreprocessing.group_by_gap(dataframe, encoders)
@@ -46,10 +46,10 @@ if __name__ == '__main__':
     test_dataset = CustomSubset(base_dataset, test_ids)
     validation_dataset = CustomSubset(base_dataset, validation_ids)
 
-    df = next(iter(dataframes))
+    df = next(iter(base_dataset.files))['x']
 
     model_properties = {
-        'input_size': len(df.columns),
+        'input_size': df.shape[1],
         'hidden_size': hidden_size,
         # 'num_layers': 8,
         'output_size': output_size,
@@ -57,8 +57,6 @@ if __name__ == '__main__':
     }
 
     model = StoreSalesGRUModel(model_properties)
-    rand_val = torch.rand(4, temporal_length, len(df.columns))
-    model(rand_val)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     loss = RMSLE()
 
@@ -88,7 +86,3 @@ if __name__ == '__main__':
                                                            early_stopping, scheduler, wandb_config)
 
     print(f"training of model complete")
-
-
-
-    
