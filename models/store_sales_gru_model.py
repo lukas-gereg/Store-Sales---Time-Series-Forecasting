@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from models.base_model import BaseModel
+from assignment.models.base_model import BaseModel
 
 
 class StoreSalesGRUModel(BaseModel):
@@ -21,10 +21,11 @@ class StoreSalesGRUModel(BaseModel):
 
         self.input_size = model_properties.get("input_size", 15)
         self.hidden_size = model_properties.get("hidden_size", 64)
-        self.num_layers = model_properties.get("num_layers", 2)
+        self.num_layers = model_properties.get("num_layers", 1)
         self.output_size = model_properties.get("output_size", 1)
         self.dropout = model_properties.get("dropout", 0.2)
         self.bidirectional = model_properties.get("bidirectional", False)
+        self.gru = None
 
         self.init_model()
 
@@ -41,13 +42,14 @@ class StoreSalesGRUModel(BaseModel):
             dropout=self.dropout if self.num_layers > 1 else 0.0,
             bidirectional=self.bidirectional
         )
-        
-        self.layer_norm = nn.LayerNorm(self.hidden_size)
+        first_hidden_dense_size = 128
+
+        self.layer_norm = nn.LayerNorm(first_hidden_dense_size)
         self.dropout = nn.Dropout(self.dropout)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(self.hidden_size, 128)
-        self.fc2 = nn.Linear(128, 64)
+        self.fc1 = nn.Linear(self.hidden_size, first_hidden_dense_size)
+        self.fc2 = nn.Linear(first_hidden_dense_size, 64)
         self.fc3 = nn.Linear(64, self.output_size)
         self.relu = nn.ReLU()
 
@@ -62,31 +64,18 @@ class StoreSalesGRUModel(BaseModel):
         Returns:
             torch.Tensor: Predictions with shape (batch_size, output_size)
         """
-        # Initialize hidden state
-        h0 = torch.zeros(
-            self.num_layers,  # Multiply by 2 for bidirectional
-            x.size(0),
-            self.hidden_size
-        ).to(x.device)
+        out, _ = self.gru(x)
 
-        # GRU forward pass
-        out, _ = self.gru(x, h0)
+        batch_size, seq_len, hidden_size = out.shape
 
-        # Use the last hidden state from both directions
-        out = out[:, -1, :]  # Shape: (batch_size, hidden_size * num_directions)
+        out = out.reshape(batch_size * seq_len, hidden_size)
 
-        out = self.fc1(out) 
+        out = self.relu(self.layer_norm(self.fc1(out)))
 
-        out = self.layer_norm(out)
+        out = self.relu(self.fc2(out))
 
-        out = self.fc2(out)
-        
-        out = self.relu(out)
+        out = self.relu(self.fc3(out))
 
-        out = self.fc3(out)
-
-        out = self.relu(out)
-
-
+        out = out.view(batch_size, seq_len, -1)
 
         return out

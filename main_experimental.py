@@ -5,8 +5,8 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_log_error
 
-from models.store_sales_gru_model import StoreSalesGRUModel
-from Data.sales_dataset import SalesDataset
+from assignment.models.store_sales_gru_model import StoreSalesGRUModel
+from assignment.datasets.sales_dataset import SalesDataset
 
 
 def main():
