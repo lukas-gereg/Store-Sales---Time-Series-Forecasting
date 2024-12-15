@@ -22,7 +22,7 @@ class DataPreprocessing:
                     encoders[column].fit(df_dataset[column].values.reshape(-1, 1))
 
                 encoded_values = encoders[column].transform(df_dataset[column].values.reshape(-1, 1))
-                encoded_df = pd.DataFrame(encoded_values, columns=encoders[column].get_feature_names_out([column]))
+                encoded_df = pd.DataFrame(encoded_values, columns=encoders[column].get_feature_names_out([column]), index=df_dataset.index)
                 df_dataset = pd.concat([df_dataset, encoded_df], axis=1)
 
                 df_dataset.drop(columns=[column], inplace=True)
@@ -50,14 +50,14 @@ class DataPreprocessing:
             df_dataset[name] = df_dataset[encoders[name].get_feature_names_out([name])].idxmax(axis=1).str.replace(f'{name}_', '')
 
         for (_, data) in df_dataset.groupby(['store_nbr', 'family']):
-            data = data.sort_values('date').reset_index(drop=True)
+            data = data.sort_values('date')
 
             data['diff'] = data['date'].diff().dt.days
             data['group'] = (data['diff'] > 1).cumsum()
             data = data.drop(columns=['store_nbr', 'family', 'diff'])
 
             for (_, grouped_data) in data.groupby(['group']):
-                grouped_data = grouped_data.sort_values('date').reset_index(drop=True)
+                grouped_data = grouped_data.sort_values('date')
                 grouped_data = grouped_data.drop(columns=['date', 'group'])
 
                 df_list.append(grouped_data)
@@ -85,7 +85,8 @@ class DataPreprocessing:
         df_dataset['week_day'] = pd.to_datetime(df_dataset['date']).dt.weekday
         df_dataset['month'] = pd.to_datetime(df_dataset['date']).dt.month
 
-        df_dataset.drop(columns=['transferred', 'description', 'event_type', 'locale', 'locale_name', 'city', 'state', 'id'], inplace=True)
+        df_dataset.drop(columns=['transferred', 'description', 'event_type', 'locale', 'locale_name', 'city', 'state'], inplace=True)
+        df_dataset.set_index('id', inplace=True)
 
         return df_dataset
 
