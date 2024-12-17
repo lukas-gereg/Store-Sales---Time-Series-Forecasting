@@ -1,13 +1,9 @@
-import re
 import os
 import sys
-
-import pandas as pd
 import torch
 import itertools
 import numpy as np
-
-from collections import Counter
+import pandas as pd
 
 from utils.evaluation import Evaluation
 
@@ -38,14 +34,25 @@ class ResultGeneration:
 
         y, x, names = zip(*results)
 
-        names_joined = list(itertools.chain.from_iterable([name.tolist() for name in names]))
-        predictions_joined = list(itertools.chain.from_iterable([value.tolist() for value in x]))
+        names_joined = np.array(list(itertools.chain.from_iterable([name.tolist() for name in names])))
+        predictions_joined = list(itertools.chain.from_iterable([torch.clamp(value, min=0).tolist() for value in x]))
 
         df = pd.DataFrame(columns=['sales'])
 
-        for item_index in np.unique(np.array(names_joined)):
-            pred_index = names_joined.index(item_index)
-            prediction = predictions_joined[pred_index]
+        for item_index in np.unique(names_joined):
+            pred_index = np.where(names_joined == item_index)[0]
+            predictions = [predictions_joined[idx] for idx in pred_index]
+            # First value
+            prediction = predictions[0]
+
+            # maximum
+            # prediction = max(predictions)
+
+            # minimum
+            # prediction = min(predictions)
+
+            # mean
+            # prediction = np.average(predictions)
 
             df.loc[item_index] = prediction
 
